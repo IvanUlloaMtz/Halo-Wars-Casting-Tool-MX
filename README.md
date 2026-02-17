@@ -1,4 +1,4 @@
-# Halo Wars 2 Casting Tool
+# Halo Wars 2 Casting Tool MX
 
 Herramienta profesional de casting para Halo Wars 2. Controla overlays en OBS mediante una interfaz sencilla.
 
