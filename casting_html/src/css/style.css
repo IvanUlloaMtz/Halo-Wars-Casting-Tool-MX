@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css?family=Orbitron:400,700|Roboto:400,700&display=swap');
+
+:root {
+    --halo-blue: #00d2ff;
+    --halo-orange: #ffaa00;
+    --bg-dark: rgba(0, 0, 0, 0.85);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Roboto', sans-serif;
+    color: white;
+}
+
+#intro {
+    position: absolute;
+    top: 200px;
+    left: 0;
+    width: 600px;
+    height: 150px;
+    background: linear-gradient(90deg, var(--bg-dark) 0%, rgba(0,0,0,0) 100%);
+    border-left: 5px solid var(--halo-blue);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    visibility: hidden;
+}
+
+#intro .name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 48px;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px var(--halo-blue);
+}
+
+#intro .team {
+    font-size: 24px;
+    color: #ccc;
+    margin-top: 5px;
+}
+
+#intro .leader-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 80px;
+    height: 80px;
+    background-size: cover;
+    /* Placeholder style */
+    background-color: #333;
+    border: 2px solid var(--halo-blue);
+    border-radius: 50%;
+}
+
+/* Score Overlay */
+#score-board {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 60px;
+    background: var(--bg-dark);
+    border-bottom: 2px solid var(--halo-blue);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+    visibility: hidden;
+}
+
+.player-score-container {
+    display: flex;
+    align-items: center;
+    width: 40%;
+}
+
+.p1-container {
+    justify-content: flex-start;
+}
+
+.p2-container {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.score-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 36px;
+    font-weight: bold;
+    color: var(--halo-orange);
+    margin: 0 15px;
+}
+
+.player-name {
+    font-size: 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.match-info {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    color: #aaa;
+}

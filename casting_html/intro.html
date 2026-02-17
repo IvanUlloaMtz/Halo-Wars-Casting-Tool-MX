@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Intro Overlay</title>
+  <link rel="stylesheet" href="src/css/style.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+</head>
+<body>
+  <div id="intro">
+    <div class="name"><span id="p-name">Player Name</span></div>
+    <div class="team"><span id="p-team">Team Name</span></div>
+    <div class="leader-icon" id="p-leader"></div>
+  </div>
+  
+  <script>
+    const ws = new WebSocket('ws://localhost:7305');
+    console.log("Connecting to WebSocket...");
+
+    ws.onopen = () => {
+        console.log("Connected to WebSocket");
+    };
+
+    ws.onmessage = (event) => {
+      console.log("Message received:", event.data);
+      const msg = JSON.parse(event.data);
+      
+      if(msg.type === 'show_intro') {
+        updateIntro(msg.data);
+        showIntroAnimation();
+        
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+            hideIntroAnimation();
+        }, 5000);
+      } else if(msg.type === 'hide_intro') {
+        hideIntroAnimation();
+      }
+    };
+    
+    function updateIntro(data) {
+        $('#p-name').text(data.player);
+        $('#p-team').text(data.team);
+        // In a real app, mapping leader name to image path would happen here
+        // $('#p-leader').css('background-image', `url('assets/leaders/${data.leader}.png')`);
+        $('#p-leader').attr('title', data.leader); // Just for debug
+    }
+
+    function showIntroAnimation() {
+      // Reset position
+      TweenMax.set('#intro', {x: -300, autoAlpha: 0});
+      
+      TweenMax.to('#intro', 0.5, {
+        autoAlpha: 1,
+        x: 0,
+        ease: Power2.easeOut
+      });
+    }
+    
+    function hideIntroAnimation() {
+      TweenMax.to('#intro', 0.5, {
+        autoAlpha: 0,
+        x: -300,
+        ease: Power2.easeIn
+      });
+    }
+  </script>
+</body>
+</html>
