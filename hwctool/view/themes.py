@@ -58,9 +58,17 @@ QComboBox::drop-down {
 QComboBox QAbstractItemView {
     background-color: #313244;
     color: #cdd6f4;
-    border: 1px solid #45475a;
+    border: 1px solid #585b70;
     selection-background-color: #89b4fa;
     selection-color: #1e1e2e;
+    outline: none;
+}
+QComboBox QAbstractItemView::item {
+    padding: 4px 8px;
+    background-color: #313244;
+}
+QComboBox QAbstractItemView::item:hover {
+    background-color: #45475a;
 }
 
 QPushButton {
@@ -112,7 +120,9 @@ QCheckBox::indicator {
 }
 QCheckBox::indicator:checked {
     background-color: #89b4fa;
-    border-color: #89b4fa;
+    border: 1px solid #89b4fa;
+    border-radius: 3px;
+    image: url(hwctool/view/check_white.svg);
 }
 
 QSlider::groove:horizontal {
@@ -227,9 +237,17 @@ QComboBox::drop-down {
 QComboBox QAbstractItemView {
     background-color: #ffffff;
     color: #4c4f69;
-    border: 1px solid #ccd0da;
+    border: 1px solid #bcc0cc;
     selection-background-color: #1e66f5;
     selection-color: #ffffff;
+    outline: none;
+}
+QComboBox QAbstractItemView::item {
+    padding: 4px 8px;
+    background-color: #ffffff;
+}
+QComboBox QAbstractItemView::item:hover {
+    background-color: #e6e9ef;
 }
 
 QPushButton {
@@ -281,7 +299,9 @@ QCheckBox::indicator {
 }
 QCheckBox::indicator:checked {
     background-color: #1e66f5;
-    border-color: #1e66f5;
+    border: 1px solid #1e66f5;
+    border-radius: 3px;
+    image: url(hwctool/view/check_white.svg);
 }
 
 QSlider::groove:horizontal {

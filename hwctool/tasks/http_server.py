@@ -91,7 +91,14 @@ class HTTPServerThread(threading.Thread):
             logger.error(f"Error en servidor HTTP: {e}")
 
     def stop(self):
+        import threading
         httpd = self.httpd
         if httpd is not None:
-            httpd.shutdown()
-            httpd.server_close()
+            # Run shutdown in a thread with timeout to avoid blocking forever
+            t = threading.Thread(target=httpd.shutdown, daemon=True)
+            t.start()
+            t.join(timeout=2)
+            try:
+                httpd.server_close()
+            except Exception:
+                pass

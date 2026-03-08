@@ -15,7 +15,7 @@ function getLeaderIcon(name) {
 }
 
 function connect() {
-    ws = new WebSocket('ws://localhost:7305');
+    ws = new WebSocket('ws://localhost:7305/card');
     ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
         if (msg.type === 'show_card') showCard(msg.data);

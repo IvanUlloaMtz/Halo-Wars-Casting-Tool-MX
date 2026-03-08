@@ -451,3 +451,28 @@ class MatchData(QObject):
             match['winner'] = 0
         self.calculate_score()
         self.data_changed.emit()
+
+    def swap_teams(self):
+        """Swap player data between Team 1 and Team 2 (names, leaders, colors, countries, team names). Scores stay."""
+        # Swap player pairs: P1↔P2, P3↔P4, P5↔P6
+        pairs = [(1, 2), (3, 4), (5, 6)]
+        for a, b in pairs:
+            for field in ['name', 'leader', 'country']:
+                attr_a = f'_player{a}_{field}'
+                attr_b = f'_player{b}_{field}'
+                val_a = getattr(self, attr_a)
+                val_b = getattr(self, attr_b)
+                setattr(self, attr_a, val_b)
+                setattr(self, attr_b, val_a)
+
+        # Swap team names
+        self._player1_team, self._player2_team = self._player2_team, self._player1_team
+
+        # Swap match leaders only (not winners)
+        for match in self.matches:
+            for a, b in pairs:
+                key_a = f'p{a}_leader'
+                key_b = f'p{b}_leader'
+                match[key_a], match[key_b] = match.get(key_b, ''), match.get(key_a, '')
+
+        self.data_changed.emit()

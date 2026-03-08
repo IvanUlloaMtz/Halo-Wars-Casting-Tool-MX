@@ -76,7 +76,7 @@ function triggerPointPulse(teamNum) {
 
 // ===== WebSocket =====
 function connect() {
-  ws = new WebSocket('ws://localhost:7305');
+  ws = new WebSocket('ws://localhost:7305/score');
 
   ws.onopen = () => {
     console.log("Connected");
@@ -347,7 +347,7 @@ function renderTeam(teamNum, data, size) {
         imgEl.onerror = null; // Prevent infinite loop
         return;
       }
-      
+
       if (imgEl.src.includes('.webp')) {
         // Try .png fallback
         imgEl.src = imgEl.src.replace('.webp', '.png');

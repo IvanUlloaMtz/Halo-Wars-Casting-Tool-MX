@@ -21,22 +21,37 @@ class MainController(QObject):
         self.ws_server.start()
 
         self._last_total_score = 0
+        self._broadcast_count = 0
 
         # Start HTTP Server
         http_port = self.config_manager.get("http_port", 8000)
         self.http_server = HTTPServerThread(port=http_port, root_dir="casting_html")
         self.http_server.start()
 
+        # Debounce timer — coalesce rapid changes into a single broadcast
+        self._debounce_timer = QTimer()
+        self._debounce_timer.setSingleShot(True)
+        self._debounce_timer.setInterval(100)  # 100ms window
+        self._debounce_timer.timeout.connect(self._do_broadcast)
+        self._debounce_count = 0
+
         # Connect signals
         self.match_data.data_changed.connect(self.on_data_changed)
         self.ws_server.client_connected.connect(self.on_client_connected)
+        self.ws_server.client_disconnected.connect(self.on_client_disconnected)
         
         # Setup Hotkeys
         self.setup_hotkeys()
 
-    def on_client_connected(self, client_info):
+    def on_client_connected(self, path):
         self.ws_server.broadcast(self.match_data.get_config())
         self.broadcast_score()
+        if self.view:
+            self.view.update_connection_indicator(path, True)
+
+    def on_client_disconnected(self, path):
+        if self.view:
+            self.view.update_connection_indicator(path, False)
 
     def set_view(self, view):
         self.view = view
@@ -55,6 +70,16 @@ class MainController(QObject):
             logger.error(f"Error registrando hotkeys: {e}")
 
     def on_data_changed(self):
+        """Debounced handler — restarts the 100ms timer on each change."""
+        self._debounce_count += 1
+        self._debounce_timer.start()
+
+    def _do_broadcast(self):
+        """Executes the actual broadcast after the debounce window expires."""
+        if self._debounce_count > 1:
+            logger.debug(f"[Debounce] Compacted {self._debounce_count} changes into 1 broadcast")
+        self._debounce_count = 0
+
         # Check for score increase to trigger Game Over
         current_total = self.match_data.player1_score + self.match_data.player2_score
         if current_total > self._last_total_score:
@@ -163,3 +188,18 @@ class MainController(QObject):
             self.view.update_from_model(self.match_data)
             self.view.refresh_match_rows()
         self.broadcast_score()
+
+    def shutdown(self):
+        """Coordinated shutdown of all servers and resources."""
+        logger.info("Iniciando apagado coordinado...")
+        try:
+            keyboard.unhook_all()
+            logger.info("Hotkeys desregistrados.")
+        except Exception as e:
+            logger.warning(f"Error desregistrando hotkeys: {e}")
+        
+        self._debounce_timer.stop()
+        self.ws_server.stop()
+        self.http_server.stop()
+        logger.info("Apagado coordinado completado.")
+

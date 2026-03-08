@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QCheckBox, QListWidget, QMessageBox, QCompleter,
                              QScrollArea, QSlider, QSizePolicy, QGridLayout,
                              QFrame)
-from PyQt6.QtCore import Qt, QStringListModel
+from PyQt6.QtCore import Qt, QStringListModel, QTimer
 from PyQt6.QtGui import QPixmap, QIcon, QColor
 import logging
 from hwctool.player_db import PlayerDB
@@ -261,14 +261,17 @@ class MainWindow(QMainWindow):
         tasks_layout = QHBoxLayout(self.tasks_group)
         
         self.chk_show_teams = QCheckBox()
+        self.chk_show_teams.setChecked(True)
         self.chk_show_teams.toggled.connect(self.on_show_team_names_toggled)
         tasks_layout.addWidget(self.chk_show_teams)
         
         self.chk_show_flags = QCheckBox()
+        self.chk_show_flags.setChecked(True)
         self.chk_show_flags.toggled.connect(self.on_show_flags_toggled)
         tasks_layout.addWidget(self.chk_show_flags)
         
         self.chk_show_game_type = QCheckBox()
+        self.chk_show_game_type.setChecked(False)
         self.chk_show_game_type.toggled.connect(self.on_show_game_type_toggled)
         tasks_layout.addWidget(self.chk_show_game_type)
         
@@ -282,22 +285,44 @@ class MainWindow(QMainWindow):
                 # Connect new buttons
         self.btn_apply.clicked.connect(lambda: self.refresh_match_rows())
         
-        # Status indicators
-
+        # Status indicators (LED style with heartbeat pulse)
         status_layout = QHBoxLayout()
         status_layout.addStretch()
-        self.conn_indicator_1 = QLabel("🟢")
-        self.conn_indicator_2 = QLabel("🟢")
-        status_layout.addWidget(self.conn_indicator_1)
-        status_layout.addWidget(self.conn_indicator_2)
+        
+        LED_OFF = "background-color: #cc2222; border-radius: 6px; min-width: 12px; max-width: 12px; min-height: 12px; max-height: 12px;"
+        
+        self.conn_indicator_score = QLabel()
+        self.conn_indicator_score.setStyleSheet(LED_OFF)
+        self.conn_label_score = QLabel("Score")
+        self.conn_label_score.setStyleSheet("font-size: 11px; margin-left: 4px;")
+        self._score_connected = False
+        
+        self.conn_indicator_cards = QLabel()
+        self.conn_indicator_cards.setStyleSheet(LED_OFF)
+        self.conn_label_cards = QLabel("Cards")
+        self.conn_label_cards.setStyleSheet("font-size: 11px; margin-left: 4px;")
+        self._cards_connected = False
+        
+        status_layout.addWidget(self.conn_indicator_score)
+        status_layout.addWidget(self.conn_label_score)
+        status_layout.addSpacing(12)
+        status_layout.addWidget(self.conn_indicator_cards)
+        status_layout.addWidget(self.conn_label_cards)
         layout.addLayout(status_layout)
-        # layout.addStretch()
+        
+        # Breathing pulse timer (smooth sine wave)
+        self._pulse_phase = 0.0
+        self._pulse_timer = QTimer()
+        self._pulse_timer.setInterval(30)
+        self._pulse_timer.timeout.connect(self._pulse_indicators)
+        self._pulse_timer.start()
 
     def setup_settings_tab(self):
         layout = QFormLayout(self.settings_tab)
         
         # Overlay URL Copy Buttons
         self.btn_copy_intro = QPushButton()
+        self.btn_copy_intro.setEnabled(False)
         self.btn_copy_intro.clicked.connect(lambda: QApplication.clipboard().setText("http://localhost:8000/intro.html"))
         
         self.btn_copy_score = QPushButton()
@@ -400,11 +425,10 @@ class MainWindow(QMainWindow):
             pixmap.fill(QColor(hex_color))
             combo.addItem(QIcon(pixmap), name, hex_color)
         combo.setCurrentIndex(default_idx)
-        combo.currentIndexChanged.connect(
-            lambda idx, c=combo, p=prop_name: setattr(
-                self.controller.match_data, p, c.itemData(idx)
-            )
-        )
+        def on_color_changed(idx, c=combo, p=prop_name):
+            setattr(self.controller.match_data, p, c.itemData(idx))
+            self.controller.match_data.data_changed.emit()
+        combo.currentIndexChanged.connect(on_color_changed)
         return combo
 
     def on_show_team_names_toggled(self, checked):
@@ -418,6 +442,11 @@ class MainWindow(QMainWindow):
 
     def on_disconnect_toggled(self, checked):
         self.controller.match_data.disconnection = checked
+
+    def on_swap_teams(self):
+        """Swap all data between Team 1 and Team 2 and refresh UI."""
+        self.controller.match_data.swap_teams()
+        self.refresh_match_rows()
 
     def on_theme_changed(self, theme_name):
         self.controller.config_manager.set("theme", theme_name)
@@ -484,9 +513,13 @@ class MainWindow(QMainWindow):
         t_name_row.addWidget(self.lbl_team1_roster)
         t_name_row.addWidget(self.t1_edit)
         
-        self.lbl_vs_roster = QLabel()
-        self.lbl_vs_roster.setText(self.tr("lbl_vs"))
-        t_name_row.addWidget(self.lbl_vs_roster)
+        # Swap Teams Button
+        self.btn_swap_teams = QPushButton("⇄")
+        self.btn_swap_teams.setFixedWidth(40)
+        self.btn_swap_teams.setToolTip("Intercambiar equipos")
+        self.btn_swap_teams.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.btn_swap_teams.clicked.connect(self.on_swap_teams)
+        t_name_row.addWidget(self.btn_swap_teams)
         
         t_name_row.addWidget(self.t2_edit)
         
@@ -545,15 +578,32 @@ class MainWindow(QMainWindow):
             p2_country.setCurrentIndex(p2_country.findData(curr2))
             p2_country.currentIndexChanged.connect(lambda idx, p=idx2, c=p2_country: [setattr(md, f'player{p}_country', c.itemData(idx)), md.data_changed.emit()])
 
+            # Color selectors per player
+            p1_color = self._make_color_combo(self.RED_TEAM_COLORS, f'player{idx1}_color', default_idx=j)
+            curr_color1 = getattr(md, f'_player{idx1}_color', self.RED_TEAM_COLORS[0][1])
+            for ci in range(p1_color.count()):
+                if p1_color.itemData(ci) == curr_color1:
+                    p1_color.setCurrentIndex(ci)
+                    break
+
+            p2_color = self._make_color_combo(self.BLUE_TEAM_COLORS, f'player{idx2}_color', default_idx=j)
+            curr_color2 = getattr(md, f'_player{idx2}_color', self.BLUE_TEAM_COLORS[0][1])
+            for ci in range(p2_color.count()):
+                if p2_color.itemData(ci) == curr_color2:
+                    p2_color.setCurrentIndex(ci)
+                    break
+
             p1_lbl_text = self.tr("p_n").replace("{n}", str(idx1))
             p2_lbl_text = self.tr("p_n").replace("{n}", str(idx2))
             
             p_row.addWidget(QLabel(p1_lbl_text))
+            p_row.addWidget(p1_color)
             p_row.addWidget(p1_country)
             p_row.addWidget(p1_edit)
             p_row.addWidget(QLabel(" - "))
             p_row.addWidget(p2_edit)
             p_row.addWidget(p2_country)
+            p_row.addWidget(p2_color)
             p_row.addWidget(QLabel(p2_lbl_text))
             
             self.roster_layout.addLayout(p_row)
@@ -650,6 +700,53 @@ class MainWindow(QMainWindow):
         for cb in combos[1:]:
             if cb.currentText() != leader_text:
                 cb.setCurrentText(leader_text)
+
+    def update_connection_indicator(self, path, connected):
+        """Update connection indicators based on client path."""
+        path_lower = path.lower() if path else ''
+        if 'score' in path_lower:
+            self._score_connected = connected
+        elif 'card' in path_lower or 'intro' in path_lower:
+            self._cards_connected = connected
+        else:
+            self._score_connected = connected
+        self._apply_indicator_styles()
+
+    def _apply_indicator_styles(self):
+        """Apply LED colors based on connection state (no pulse)."""
+        import math
+        for indicator, is_connected in [
+            (self.conn_indicator_score, self._score_connected),
+            (self.conn_indicator_cards, self._cards_connected),
+        ]:
+            color = "#22cc44" if is_connected else "#cc2222"
+            indicator.setStyleSheet(
+                f"background-color: {color}; border-radius: 6px; "
+                f"min-width: 12px; max-width: 12px; min-height: 12px; max-height: 12px;"
+            )
+
+    def _pulse_indicators(self):
+        """Smooth breathing effect using sine wave for connected indicators."""
+        import math
+        self._pulse_phase += 0.05  # ~3s full cycle at 30ms interval
+        # Sine wave: 0.3 to 1.0 brightness range
+        t = (math.sin(self._pulse_phase) + 1.0) / 2.0  # 0.0 to 1.0
+        brightness = 0.3 + 0.7 * t  # 0.3 to 1.0
+
+        for indicator, is_connected in [
+            (self.conn_indicator_score, self._score_connected),
+            (self.conn_indicator_cards, self._cards_connected),
+        ]:
+            if is_connected:
+                g = int(204 * brightness)
+                r = int(34 * brightness)
+                color = f"#{r:02x}{g:02x}{int(68 * brightness):02x}"
+            else:
+                color = "#cc2222"
+            indicator.setStyleSheet(
+                f"background-color: {color}; border-radius: 6px; "
+                f"min-width: 12px; max-width: 12px; min-height: 12px; max-height: 12px;"
+            )
 
     def update_from_model(self, data):
         if int(self.best_of.currentText()) != data.best_of:

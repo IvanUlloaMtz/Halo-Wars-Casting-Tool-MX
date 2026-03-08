@@ -47,6 +47,9 @@ def main():
     saved_theme = controller.config_manager.get("theme", "light")
     window.apply_theme(saved_theme)
     
+    # Coordinated shutdown on app close
+    app.aboutToQuit.connect(controller.shutdown)
+    
     window.show()
     logger.info("GUI Iniciada.")
 
