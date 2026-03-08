@@ -2,14 +2,18 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QLineEdit, QPushButton, QTabWidget, QSpinBox, 
                              QComboBox, QGroupBox, QFormLayout, QApplication,
                              QCheckBox, QListWidget, QMessageBox, QCompleter,
-                             QScrollArea, QSlider)
+                             QScrollArea, QSlider, QSizePolicy, QGridLayout,
+                             QFrame)
 from PyQt6.QtCore import Qt, QStringListModel
 from PyQt6.QtGui import QPixmap, QIcon, QColor
 import logging
 from hwctool.player_db import PlayerDB
 from hwctool.view.themes import get_theme, THEMES
-from hwctool.matchdata import LEADERS
+from hwctool.matchdata import LEADERS, MAPS
 from hwctool.locale import get_text
+from hwctool.view.widgets import AnimatedBackground
+
+logger = logging.getLogger('root')
 
 class MainWindow(QMainWindow):
     def __init__(self, controller):
@@ -18,7 +22,8 @@ class MainWindow(QMainWindow):
         self.player_db = PlayerDB()
         self.lang = self.controller.config_manager.get("language", "es")
         self.setWindowTitle(self.tr("window_title"))
-        # self.setGeometry(100, 100, 800, 600)
+        self.resize(1100, 800)
+        self.setMinimumSize(900, 650)
         
         self.setup_ui()
 
@@ -62,72 +67,70 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        layout = QVBoxLayout(central_widget)
+        # Animated Background Layer
+        self.bg_animated = AnimatedBackground(central_widget)
+        self.bg_animated.lower() # Place behind everything
+        self.bg_animated.setVisible(self.controller.config_manager.get("dynamic_bg", True))
         
-        # Tabs
+        layout = QVBoxLayout(central_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
         
-        # Match Control Tab
+        # Helper to wrap widgets in a scroll area
+        def wrap(w):
+            s = QScrollArea()
+            s.setWidgetResizable(True)
+            s.setFrameShape(QFrame.Shape.NoFrame)
+            s.setWidget(w)
+            s.setStyleSheet("background: transparent;")
+            return s
+
         self.match_tab = QWidget()
         self.setup_match_tab()
-        self.tabs.addTab(self.match_tab, self.tr("tab_control"))
+        self.tabs.addTab(wrap(self.match_tab), "Settings")
         
-        # Settings Tab
         self.settings_tab = QWidget()
         self.setup_settings_tab()
-        self.tabs.addTab(self.settings_tab, self.tr("tab_settings"))
-
+        self.tabs.addTab(wrap(self.settings_tab), "Browser Sources")
         
-        # Players Tab
         self.players_tab = QWidget()
         self.setup_players_tab()
-        self.tabs.addTab(self.players_tab, "")
+        self.tabs.addTab(wrap(self.players_tab), "Profile")
+        
+        self.info_tab = QWidget()
+        self.setup_info_tab()
+        self.tabs.addTab(wrap(self.info_tab), "Info & Links")
         
         self.retranslate_ui()
 
     def retranslate_ui(self):
-        """Update all UI texts based on current language."""
         self.setWindowTitle(self.tr("window_title"))
-        
-        # Tabs
         self.tabs.setTabText(0, self.tr("tab_control"))
         self.tabs.setTabText(1, self.tr("tab_settings"))
         self.tabs.setTabText(2, self.tr("tab_players"))
+        self.tabs.setTabText(3, self.tr("tab_info"))
         
-        # Match Tab - Static Labels
-        self.lbl_team_size.setText(self.tr("team_size"))
-        self.lbl_best_of.setText(self.tr("best_of"))
-        self.lbl_type.setText(self.tr("type"))
-        self.lbl_map.setText(self.tr("map"))
+        # Match Tab
+        self.grp_custom_match.setTitle(self.tr("grp_custom_match"))
+        self.lbl_format.setText(self.tr("lbl_format"))
+        self.lbl_game_type.setText(self.tr("lbl_game_type"))
+        self.lbl_best_of.setText(self.tr("lbl_best_of"))
+        self.lbl_at_least.setText(self.tr("lbl_at_least"))
+        self.lbl_maps.setText(self.tr("lbl_maps"))
+        self.lbl_current_map.setText(self.tr("map"))
+        self.btn_apply.setText(self.tr("btn_apply_format"))
+        self.roster_group.setTitle(self.tr("grp_team_roster"))
+        self.match_data_group.setTitle(self.tr("grp_match_data"))
         
-        # Match Tab - Buttons/Checks
-        self.btn_intro_p1.setText(self.tr("show_intro_t1"))
-        self.btn_intro_p2.setText(self.tr("show_intro_t2"))
-        self.btn_toggle_score.setText(self.tr("update_score"))
-        self.btn_reset.setText(self.tr("reset_overlays"))
-        self.mirror_cb.setText(self.tr("mirror_match"))
-        self.btn_cards_t1.setText(self.tr("cards_t1"))
-        self.btn_cards_t2.setText(self.tr("cards_t2"))
-        self.disconnect_cb.setText(self.tr("disconnection"))
+        self.lbl_dynamic_bg.setText(self.tr("dynamic_bg"))
+        
+        self.tasks_group.setTitle(self.tr("grp_tasks"))
+        self.btn_reset.setText(self.tr("btn_reset_score"))
+        
+        self.lbl_made_by.setText(self.tr("lbl_made_by"))
 
-        # Settings Tab
-        self.btn_copy_intro.setText(self.tr("copy_intro_url"))
-        self.btn_copy_score.setText(self.tr("copy_score_url"))
-        self.btn_copy_card.setText(self.tr("copy_card_url"))
-        self.lbl_urls_obs.setText("URLs OBS:") # Keep hardcoded or add to locale? Leaving hardcoded as I didn't add key.
-        
-        self.map_group.setTitle(self.tr("map_popup_config"))
-        self.map_popup_enabled.setText(self.tr("map_popup_enable"))
-        self.lbl_map_enter.setText(self.tr("map_enter"))
-        self.lbl_map_visible.setText(self.tr("map_visible"))
-        self.lbl_map_exit.setText(self.tr("map_exit"))
-        self.lbl_map_hidden.setText(self.tr("map_hidden"))
-        
-        self.theme_group.setTitle("Apariencia" if self.lang == 'es' else "Appearance") # Fallback or add key
-        self.lbl_theme.setText(self.tr("theme"))
-        self.lbl_language.setText(self.tr("language"))
-        
         # Players Tab
         self.lbl_registered_players.setText(self.tr("registered_players"))
         self.grp_player_data.setTitle(self.tr("player_data"))
@@ -140,147 +143,154 @@ class MainWindow(QMainWindow):
         self.lbl_mmr3.setText(self.tr("mmr_3v3"))
         self.lbl_playstyle.setText(self.tr("playstyle"))
         self.lbl_main_leader.setText(self.tr("main_leader"))
-        
         self.btn_new.setText(self.tr("btn_new"))
         self.btn_save.setText(self.tr("btn_save"))
         self.btn_delete.setText(self.tr("btn_delete"))
         
-        # Refresh dynamic match rows
+        # Browser Sources (Settings)
+        self.lbl_url_obs.setText(self.tr("lbl_urls_obs"))
+        self.btn_copy_intro.setText(self.tr("copy_intro_url"))
+        self.btn_copy_score.setText(self.tr("copy_score_url"))
+        self.btn_copy_card.setText(self.tr("copy_card_url"))
+        
+        # Map Popup
+        self.map_group.setTitle(self.tr("map_popup_config"))
+        self.map_popup_enabled.setText(self.tr("map_popup_enable"))
+        self.lbl_map_enter.setText(self.tr("map_enter"))
+        self.lbl_map_visible.setText(self.tr("map_visible"))
+        self.lbl_map_exit.setText(self.tr("map_exit"))
+        self.lbl_map_hidden.setText(self.tr("map_hidden"))
+        
+        # Theme/Lang
+        self.theme_group.setTitle(self.tr("tab_settings"))
+        self.lbl_theme.setText(self.tr("theme"))
+        self.lbl_language.setText(self.tr("language"))
+        
+        self.btn_reset.setText(self.tr("reset_all"))
+        self.chk_show_teams.setText(self.tr("show_team_names"))
+        self.chk_show_flags.setText(self.tr("show_flags"))
+        self.chk_show_game_type.setText(self.tr("show_game_type"))
+        
         self.refresh_match_rows()
 
     def setup_match_tab(self):
         layout = QVBoxLayout(self.match_tab)
 
-        # --- Match Settings (Top) ---
-        match_config_layout = QHBoxLayout()
+        # --- Custom Match (Top) ---
+        self.grp_custom_match = QGroupBox()
+        cm_layout = QFormLayout(self.grp_custom_match)
         
+        format_layout = QHBoxLayout()
         self.team_size = QComboBox()
         self.team_size.addItems(["1v1", "2v2", "3v3"])
         
+        self.lbl_format = QLabel()
+        format_layout.addWidget(self.team_size)
+
         self.best_of = QComboBox()
-        self.best_of.addItems([str(i) for i in range(1, 16, 2)]) # 1, 3, 5, ..., 15 
-        
-        self.game_type = QComboBox()
-        self.game_type.addItems(["Deathmatch", "Domination", "Strongholds", "Blitz", "ShowMatch", "Customs", "Mediocres"])
-        self.game_type.currentTextChanged.connect(lambda t: setattr(self.controller.match_data, 'game_type', t))
-
-        self.map_select = QComboBox()
-        self.map_select.addItems(["Ashes", "Badlands", "Bedrock", "Fissures", "Fort Jordan", "Frontier", "Highway", "Mirage", "Rift", "Sentry", "Vault"])
-        self.map_select.currentTextChanged.connect(lambda t: setattr(self.controller.match_data, 'current_map', t))
-
-        self.lbl_team_size = QLabel()
-        match_config_layout.addWidget(self.lbl_team_size)
-        match_config_layout.addWidget(self.team_size)
-        
+        self.best_of.addItems([str(i) for i in range(1, 16, 2)])
         self.lbl_best_of = QLabel()
-        match_config_layout.addWidget(self.lbl_best_of)
-        match_config_layout.addWidget(self.best_of)
+        format_layout.addWidget(self.lbl_best_of)
+        format_layout.addWidget(self.best_of)
+        self.lbl_at_least = QLabel()
+        format_layout.addWidget(self.lbl_at_least)
+        self.at_least_cb = QComboBox()
+        self.at_least_cb.addItems(["1", "2", "3", "4", "5", "6", "7"])
+        format_layout.addWidget(self.at_least_cb)
+        self.lbl_maps = QLabel()
+        format_layout.addWidget(self.lbl_maps)
+        format_layout.addStretch()
         
-        self.lbl_type = QLabel()
-        match_config_layout.addWidget(self.lbl_type)
-        match_config_layout.addWidget(self.game_type)
+        self.btn_apply = QPushButton()
+        format_layout.addWidget(self.btn_apply)
         
-        self.lbl_map = QLabel()
-        match_config_layout.addWidget(self.lbl_map)
-        match_config_layout.addWidget(self.map_select)
+        cm_layout.addRow(self.lbl_format, format_layout)
         
-        match_config_layout.addStretch()
-        layout.addLayout(match_config_layout)
+        # --- Game Type Row ---
+        game_type_layout = QHBoxLayout()
+        self.game_type_combo = QComboBox()
+        self.game_type_combo.addItems(["Deathmatch", "Domination", "Strongholds", "Blitz"])
+        self.game_type_combo.currentTextChanged.connect(lambda t: setattr(self.controller.match_data, 'game_type', t))
         
-        # --- Teams Header ---
-        teams_row = QHBoxLayout()
-        self.p1_team = QLineEdit(); self.p1_team.setPlaceholderText(self.tr("p1_team_placeholder"))
-        self.p1_team.textChanged.connect(lambda t: setattr(self.controller.match_data, 'player1_team', t))
-        self.p2_team = QLineEdit(); self.p2_team.setPlaceholderText(self.tr("p2_team_placeholder"))
-        self.p2_team.textChanged.connect(lambda t: setattr(self.controller.match_data, 'player2_team', t))
+        self.lbl_game_type = QLabel()
+        game_type_layout.addWidget(self.game_type_combo)
         
-        self.show_team_names_cb = QCheckBox(self.tr("show_overlay"))
-        self.show_team_names_cb.setChecked(False)
-        self.show_team_names_cb.toggled.connect(self.on_show_team_names_toggled)
+        self.lbl_current_map = QLabel()
+        self.map_combo = QComboBox()
+        self.map_combo.addItems(MAPS)
+        self.map_combo.currentTextChanged.connect(lambda t: setattr(self.controller.match_data, 'current_map', t))
         
-        teams_row.addWidget(self.p1_team)
-        teams_row.addWidget(QLabel("  vs  "))
-        teams_row.addWidget(self.p2_team)
-        teams_row.addWidget(self.show_team_names_cb)
-        layout.addLayout(teams_row)
+        game_type_layout.addSpacing(20)
+        game_type_layout.addWidget(self.lbl_current_map)
+        game_type_layout.addWidget(self.map_combo)
+        game_type_layout.addStretch()
+        
+        cm_layout.addRow(self.lbl_game_type, game_type_layout)
+        
+        layout.addWidget(self.grp_custom_match)
+        
+                # --- Team Roster ---
+        self.roster_group = QGroupBox("Team Roster")
+        self.roster_layout = QVBoxLayout(self.roster_group)
+        layout.addWidget(self.roster_group)
 
-        # --- Match Rows Container ---
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
+        # --- Match Data Container ---
+        self.match_data_group = QGroupBox("Match Data")
+        self.match_data_layout = QVBoxLayout(self.match_data_group)
+        
+
+        
         self.match_rows_widget = QWidget()
-        self.match_rows_layout = QVBoxLayout(self.match_rows_widget)
+        self.match_rows_layout = QGridLayout(self.match_rows_widget)
         self.match_rows_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        scroll.setWidget(self.match_rows_widget)
         
-        scroll.setMinimumHeight(400)
-        layout.addWidget(scroll)
+        self.match_data_layout.addWidget(self.match_rows_widget)
+        layout.addWidget(self.match_data_group)
         
-        # Connect signals after layout is ready
-        self.team_size.currentIndexChanged.connect(self.update_team_size)
         self.best_of.currentTextChanged.connect(lambda t: setattr(self.controller.match_data, 'best_of', int(t)))
         self.best_of.currentTextChanged.connect(self.refresh_match_rows)
+        self.team_size.currentIndexChanged.connect(self.update_team_size)
 
-        # Initial Draw
+
         self.controller.match_data.init_matches() 
         self.update_team_size(0) # Default 1v1
+
         
-        # Action Buttons
-        actions_layout = QHBoxLayout()
+        # --- Tasks / Options ---
+        self.tasks_group = QGroupBox()
+        tasks_layout = QHBoxLayout(self.tasks_group)
         
-        self.btn_intro_p1 = QPushButton()
-        self.btn_intro_p1.clicked.connect(self.controller.show_intro_p1)
-        actions_layout.addWidget(self.btn_intro_p1)
+        self.chk_show_teams = QCheckBox()
+        self.chk_show_teams.toggled.connect(self.on_show_team_names_toggled)
+        tasks_layout.addWidget(self.chk_show_teams)
         
-        self.btn_intro_p2 = QPushButton()
-        self.btn_intro_p2.clicked.connect(self.controller.show_intro_p2)
-        actions_layout.addWidget(self.btn_intro_p2)
+        self.chk_show_flags = QCheckBox()
+        self.chk_show_flags.toggled.connect(self.on_show_flags_toggled)
+        tasks_layout.addWidget(self.chk_show_flags)
         
-        self.btn_toggle_score = QPushButton()
-        self.btn_toggle_score.clicked.connect(self.controller.toggle_score)
-        actions_layout.addWidget(self.btn_toggle_score)
+        self.chk_show_game_type = QCheckBox()
+        self.chk_show_game_type.toggled.connect(self.on_show_game_type_toggled)
+        tasks_layout.addWidget(self.chk_show_game_type)
         
+        tasks_layout.addStretch()
+
         self.btn_reset = QPushButton()
         self.btn_reset.clicked.connect(self.controller.reset_all)
-        actions_layout.addWidget(self.btn_reset)
+        tasks_layout.addWidget(self.btn_reset)
+        layout.addWidget(self.tasks_group)
+        
+                # Connect new buttons
+        self.btn_apply.clicked.connect(lambda: self.refresh_match_rows())
+        
+        # Status indicators
 
-
-        
-
-        
-        # Mirror Match Toggle
-        self.mirror_cb = QCheckBox(self.tr("mirror_match"))
-        self.mirror_cb.setChecked(False)
-        self.mirror_cb.setStyleSheet(
-            "QCheckBox { color: #00cccc; font-weight: bold; }"
-            "QCheckBox::indicator:checked { background-color: #00cccc; border: 1px solid #00ffff; }"
-        )
-        self.mirror_cb.toggled.connect(self.on_mirror_match_toggled)
-        actions_layout.addWidget(self.mirror_cb)
-
-        # Batch Cards
-        actions_layout.addWidget(QLabel("|"))
-        self.btn_cards_t1 = QPushButton()
-        self.btn_cards_t1.clicked.connect(lambda: self.show_team_cards(1))
-        self.btn_cards_t1.setStyleSheet("background-color: #550000; color: white; font-weight: bold;")
-        actions_layout.addWidget(self.btn_cards_t1)
-        
-        self.btn_cards_t2 = QPushButton()
-        self.btn_cards_t2.clicked.connect(lambda: self.show_team_cards(2))
-        self.btn_cards_t2.setStyleSheet("background-color: #000055; color: white; font-weight: bold;")
-        actions_layout.addWidget(self.btn_cards_t2)
-        
-        # Disconnection Alert Toggle
-        actions_layout.addWidget(QLabel("|"))
-        self.disconnect_cb = QCheckBox(self.tr("disconnection"))
-        self.disconnect_cb.setChecked(False)
-        self.disconnect_cb.setStyleSheet(
-            "QCheckBox { color: #ffaa00; font-weight: bold; }"
-            "QCheckBox::indicator:checked { background-color: #ff4444; border: 1px solid #ff6666; }"
-        )
-        self.disconnect_cb.toggled.connect(self.on_disconnect_toggled)
-        actions_layout.addWidget(self.disconnect_cb)
-        
-        layout.addLayout(actions_layout)
+        status_layout = QHBoxLayout()
+        status_layout.addStretch()
+        self.conn_indicator_1 = QLabel("🟢")
+        self.conn_indicator_2 = QLabel("🟢")
+        status_layout.addWidget(self.conn_indicator_1)
+        status_layout.addWidget(self.conn_indicator_2)
+        layout.addLayout(status_layout)
         # layout.addStretch()
 
     def setup_settings_tab(self):
@@ -301,13 +311,8 @@ class MainWindow(QMainWindow):
         url_layout.addWidget(self.btn_copy_score)
         url_layout.addWidget(self.btn_copy_card)
         
-        self.lbl_url_obs = QLabel("URLs OBS:") # This one I missed in previous translation too, or used "URLs OBS:". Let's make it localizable.
-        # Actually I didn't add "URLs OBS:" to locale. Let's add it to locale later or just keep hardcoded for now if user didn't ask.
-        # But wait, I am refactoring for i18n. I should make it self.lbl_urls_obs
-        layout.addRow("URLs OBS:", url_layout) # I'll leave it as string literal for now as it wasn't in previous set.
-        # Wait, I should do:
-        self.lbl_urls_obs = QLabel("URLs OBS:") 
-        layout.addRow(self.lbl_urls_obs, url_layout)
+        self.lbl_url_obs = QLabel("URLs OBS:")
+        layout.addRow(self.lbl_url_obs, url_layout)
 
         # --- Map Popup Config ---
         self.map_group = QGroupBox()
@@ -347,6 +352,12 @@ class MainWindow(QMainWindow):
         self.lbl_map_hidden = QLabel()
         map_layout.addRow(self.lbl_map_hidden, self.map_hidden_spin)
 
+        self.dynamic_bg_enabled = QCheckBox()
+        self.dynamic_bg_enabled.setChecked(self.controller.config_manager.get("dynamic_bg", True))
+        self.dynamic_bg_enabled.toggled.connect(self.toggle_dynamic_bg)
+        self.lbl_dynamic_bg = QLabel()
+        map_layout.addRow(self.lbl_dynamic_bg, self.dynamic_bg_enabled)
+
         layout.addRow(self.map_group)
 
         # --- Theme Selector ---
@@ -370,17 +381,15 @@ class MainWindow(QMainWindow):
         self.lang_combo.addItem("Español", "es")
         self.lang_combo.addItem("English", "en")
         
-        idx = self.lang_combo.findData(self.lang)
-        if idx >= 0: self.lang_combo.setCurrentIndex(idx)
-        
-        self.lang_combo.currentIndexChanged.connect(self.on_language_changed)
+        self.lang_combo.currentIndexChanged.connect(self.on_lang_changed)
         
         self.lbl_language = QLabel()
         theme_layout.addRow(self.lbl_language, self.lang_combo)
 
         layout.addRow(self.theme_group)
 
-        layout.addRow(QLabel("Made by Ivanoides Corporation"))
+        self.lbl_made_by = QLabel()
+        layout.addRow(self.lbl_made_by)
 
     def _make_color_combo(self, colors, prop_name, default_idx=0):
         """Create a color dropdown with colored icon swatches."""
@@ -401,25 +410,45 @@ class MainWindow(QMainWindow):
     def on_show_team_names_toggled(self, checked):
         self.controller.match_data.show_team_names = checked
 
+    def on_show_flags_toggled(self, checked):
+        self.controller.match_data.show_flags = checked
+
+    def on_show_game_type_toggled(self, checked):
+        self.controller.match_data.show_game_type = checked
+
     def on_disconnect_toggled(self, checked):
         self.controller.match_data.disconnection = checked
 
     def on_theme_changed(self, theme_name):
-        """Called when theme combo changes. Saves preference and applies."""
         self.controller.config_manager.set("theme", theme_name)
+        self.controller.config_manager.save_config()
         self.apply_theme(theme_name)
+        logger.info(f"Tema cambiado a: {theme_name}")
 
-    def on_language_changed(self, index):
-        code = self.lang_combo.itemData(index)
-        if code != self.lang:
-            self.lang = code
-            self.controller.config_manager.set("language", code)
+    def on_lang_changed(self, index):
+        new_lang = self.lang_combo.itemData(index)
+        if new_lang and new_lang != self.lang:
+            self.lang = new_lang
+            self.controller.config_manager.set("language", new_lang)
+            self.controller.config_manager.save_config()
             self.retranslate_ui()
+            logger.info(f"Idioma cambiado a: {new_lang}")
 
     def apply_theme(self, theme_name):
         """Applies the given theme stylesheet to the entire application."""
         qss = get_theme(theme_name)
         QApplication.instance().setStyleSheet(qss)
+
+    def clear_layout(self, layout):
+        """Recursively clears a layout and deletes its widgets."""
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.clear_layout(item.layout())
 
     def update_team_size(self, index):
         size = index + 1
@@ -427,183 +456,182 @@ class MainWindow(QMainWindow):
         self.refresh_match_rows()
 
     def refresh_match_rows(self):
-        # Clear stale completers
         self._all_completers = []
-
-        # Clear existing rows
-        while self.match_rows_layout.count():
-            child = self.match_rows_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+        self._match_player_labels = {i: [] for i in range(1, 7)}
+        
+        # Clear layouts robustly
+        self.clear_layout(self.roster_layout)
+        self.clear_layout(self.match_rows_layout)
 
         md = self.controller.match_data
         matches = getattr(md, 'matches', [])
         leaders = LEADERS
+        self._leader_combos = {}
         team_size = md.team_size
 
-        # === Player header: names + colors (shown once) ===
-        player_pairs = [
-            (1, 2, '_player1_name', self.tr("player_n").format(n=1), 'player1_name', 'player1_color', self.RED_TEAM_COLORS,
-                    '_player2_name', self.tr("player_n").format(n=2), 'player2_name', 'player2_color', self.BLUE_TEAM_COLORS, 0),
-        ]
-        if team_size >= 2:
-            player_pairs.append(
-                (3, 4, '_player3_name', self.tr("player_n").format(n=3), 'player3_name', 'player3_color', self.RED_TEAM_COLORS,
-                        '_player4_name', self.tr("player_n").format(n=4), 'player4_name', 'player4_color', self.BLUE_TEAM_COLORS, 1))
-        if team_size >= 3:
-            player_pairs.append(
-                (5, 6, '_player5_name', self.tr("player_n").format(n=5), 'player5_name', 'player5_color', self.RED_TEAM_COLORS,
-                        '_player6_name', self.tr("player_n").format(n=6), 'player6_name', 'player6_color', self.BLUE_TEAM_COLORS, 2))
+        # --- Team Names ---
+        t_name_row = QHBoxLayout()
+        self.t1_edit = QLineEdit(md.player1_team)
+        self.t1_edit.setPlaceholderText(self.tr("ph_team1_name"))
+        self.t1_edit.textChanged.connect(lambda t: setattr(md, 'player1_team', t))
+        
+        self.t2_edit = QLineEdit(md.player2_team)
+        self.t2_edit.setPlaceholderText(self.tr("ph_team2_name"))
+        self.t2_edit.textChanged.connect(lambda t: setattr(md, 'player2_team', t))
+        
+        self.lbl_team1_roster = QLabel()
+        self.lbl_team1_roster.setText(self.tr("lbl_team1"))
+        t_name_row.addWidget(self.lbl_team1_roster)
+        t_name_row.addWidget(self.t1_edit)
+        
+        self.lbl_vs_roster = QLabel()
+        self.lbl_vs_roster.setText(self.tr("lbl_vs"))
+        t_name_row.addWidget(self.lbl_vs_roster)
+        
+        t_name_row.addWidget(self.t2_edit)
+        
+        self.lbl_team2_roster = QLabel()
+        self.lbl_team2_roster.setText(self.tr("lbl_team2"))
+        t_name_row.addWidget(self.lbl_team2_roster)
+        self.roster_layout.addLayout(t_name_row)
 
-        for pp in player_pairs:
-            (p1_idx, p2_idx, attr1, ph1, prop1, cprop1, ccolors1,
-                    attr2, ph2, prop2, cprop2, ccolors2, cidx) = pp
-            hdr = QWidget()
-            hdr_lay = QHBoxLayout(hdr)
-            hdr_lay.setContentsMargins(0, 2, 0, 2)
-
-            # T1 player
-            e1 = QLineEdit(getattr(md, attr1, ph1)) # Use current val or placeholder
-            # If current val is empty/default, should we sync with new placeholder? 
-            # getattr(md, attr1, ph1) uses ph1 as default if attr1 is missing. 
-            # But attr1 should exist. 
-            # If user has typed something, we keep it. If it was default "Jugador 1", does it update?
-            # attr1 is '_player1_name'. Initialize in matchdata uses defaults.
-            # If I switch language, the underlying data might still have old default text. 
-            # But the Placeholder text is what matters for empty fields.
-            e1.setPlaceholderText(ph1)
-            e1.textChanged.connect(lambda t, p=prop1: setattr(md, p, t))
-            completer1 = QCompleter(self.player_db.get_all_names(), e1)
-            completer1.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            completer1.setFilterMode(Qt.MatchFlag.MatchContains)
-            e1.setCompleter(completer1)
-            self._all_completers.append(completer1)
-            c1 = self._make_color_combo(ccolors1, cprop1, cidx)
+        # --- Build Roster Section ---
+        def make_player_edit(attr, ph, prop, player_idx):
+            current_val = getattr(md, attr, ph)
+            if current_val == ph: current_val = "" # Don't show "Player N" as text
+            e = QLineEdit(current_val)
+            e.setPlaceholderText(ph)
             
-            # Country P1
-            country1 = QComboBox()
-            country1.setFixedWidth(120)
+            def update_model_and_labels(t, p=prop, p_idx=player_idx):
+                setattr(md, p, t)
+                display_name = t if t.strip() else f"P{p_idx}"
+                is_left = p_idx % 2 != 0
+                text = f"<b>{display_name}:</b>" if is_left else f"<b>:{display_name}</b>"
+                for lbl in self._match_player_labels[p_idx]:
+                    lbl.setText(text)
+
+            e.textChanged.connect(update_model_and_labels)
+            completer = QCompleter(self.player_db.get_all_names(), e)
+            completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            completer.setFilterMode(Qt.MatchFlag.MatchContains)
+            e.setCompleter(completer)
+            self._all_completers.append(completer)
+            return e
+
+        for j in range(team_size):
+            p_row = QHBoxLayout()
+            idx1 = 1 if j == 0 else (3 if j == 1 else 5)
+            idx2 = 2 if j == 0 else (4 if j == 1 else 6)
+            
+            p1_ph = self.tr("ph_player_n").replace("{n}", str(idx1))
+            p2_ph = self.tr("ph_player_n").replace("{n}", str(idx2))
+            
+            p1_edit = make_player_edit(f'_player{idx1}_name', p1_ph, f'player{idx1}_name', idx1)
+            p2_edit = make_player_edit(f'_player{idx2}_name', p2_ph, f'player{idx2}_name', idx2)
+            
+            p1_country = QComboBox()
+            p1_country.setFixedWidth(80)
             for name, code in self.COUNTRIES.items():
-                country1.addItem(name, code)
-            
-            p1_country_prop = f"player{p1_idx}_country"
-            p1_country_code = getattr(md, p1_country_prop, 'mx')
-            idx1 = country1.findData(p1_country_code)
-            if idx1 >= 0: country1.setCurrentIndex(idx1)
-            
-            country1.currentIndexChanged.connect(
-                lambda idx, c=country1, p=p1_country_prop: setattr(md, p, c.itemData(idx))
-            )
+                p1_country.addItem(name, code)
+            curr1 = getattr(md, f'player{idx1}_country', 'mx')
+            p1_country.setCurrentIndex(p1_country.findData(curr1))
+            p1_country.currentIndexChanged.connect(lambda idx, p=idx1, c=p1_country: [setattr(md, f'player{p}_country', c.itemData(idx)), md.data_changed.emit()])
 
-            hdr_lay.addWidget(e1)
-            hdr_lay.addWidget(c1)
-            hdr_lay.addWidget(country1)
-
-            hdr_lay.addWidget(QLabel("  —  "))
-
-            # T2 player
-            e2 = QLineEdit(getattr(md, attr2, ph2))
-            e2.setPlaceholderText(ph2)
-            e2.textChanged.connect(lambda t, p=prop2: setattr(md, p, t))
-            completer2 = QCompleter(self.player_db.get_all_names(), e2)
-            completer2.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            completer2.setFilterMode(Qt.MatchFlag.MatchContains)
-            e2.setCompleter(completer2)
-            self._all_completers.append(completer2)
-            c2 = self._make_color_combo(ccolors2, cprop2, cidx)
-            
-            # Country P2
-            country2 = QComboBox()
-            country2.setFixedWidth(120)
+            p2_country = QComboBox()
+            p2_country.setFixedWidth(80)
             for name, code in self.COUNTRIES.items():
-                country2.addItem(name, code)
+                p2_country.addItem(name, code)
+            curr2 = getattr(md, f'player{idx2}_country', 'mx')
+            p2_country.setCurrentIndex(p2_country.findData(curr2))
+            p2_country.currentIndexChanged.connect(lambda idx, p=idx2, c=p2_country: [setattr(md, f'player{p}_country', c.itemData(idx)), md.data_changed.emit()])
+
+            p1_lbl_text = self.tr("p_n").replace("{n}", str(idx1))
+            p2_lbl_text = self.tr("p_n").replace("{n}", str(idx2))
             
-            p2_country_prop = f"player{p2_idx}_country"
-            p2_country_code = getattr(md, p2_country_prop, 'mx')
-            idx2 = country2.findData(p2_country_code)
-            if idx2 >= 0: country2.setCurrentIndex(idx2)
-
-            country2.currentIndexChanged.connect(
-                lambda idx, c=country2, p=p2_country_prop: setattr(md, p, c.itemData(idx))
-            )
+            p_row.addWidget(QLabel(p1_lbl_text))
+            p_row.addWidget(p1_country)
+            p_row.addWidget(p1_edit)
+            p_row.addWidget(QLabel(" - "))
+            p_row.addWidget(p2_edit)
+            p_row.addWidget(p2_country)
+            p_row.addWidget(QLabel(p2_lbl_text))
             
-            hdr_lay.addWidget(e2)
-            hdr_lay.addWidget(c2)
-            hdr_lay.addWidget(country2)
+            self.roster_layout.addLayout(p_row)
 
-            self.match_rows_layout.addWidget(hdr)
+        # --- Build Match Rows using Grid ---
+        self.match_rows_layout.setSpacing(5)
+        self.match_rows_layout.setContentsMargins(5, 5, 5, 5)
 
-        # Separator
-        sep = QLabel("─" * 60)
-        sep.setStyleSheet("color: gray;")
-        self.match_rows_layout.addWidget(sep)
-
-        # Track leader combos per player key for propagation
-        self._leader_combos = {}
-
-        # === Game rows: #N [Leader(s)] [slider] [Leader(s)] ===
         for i, match in enumerate(matches):
-            row_widget = QWidget()
-            row_layout = QHBoxLayout(row_widget)
-            row_layout.setContentsMargins(0, 2, 0, 2)
+            base_row = i * 3 # Max 3 players per team
             
-            row_layout.addWidget(QLabel(self.tr("match_n").format(n=i+1)))
+            # Match Label (Spans team_size rows)
+            match_lbl = QLabel(self.tr("match_n").replace("{n}", str(i+1)))
+            match_lbl.setStyleSheet("color: #888; border-right: 1px solid #333; padding-right: 10px; font-weight: bold;")
+            match_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.match_rows_layout.addWidget(match_lbl, base_row, 0, team_size, 1)
 
-            # Helper to create a leader combo with propagation
-            def make_leader_combo(match_idx, player_key, default, layout_ref):
+            def add_player_row(p_idx, col_offset, align_right):
+                p_row = base_row + (0 if p_idx in [1,2] else (1 if p_idx in [3,4] else 2))
+                p_name = getattr(md, f'player{p_idx}_name', '').strip() or f"P{p_idx}"
+                
+                # Name Label
+                text = f"<b>{p_name}:</b>" if align_right else f"<b>:{p_name}</b>"
+                name_lbl = QLabel(text)
+                name_lbl.setAlignment((Qt.AlignmentFlag.AlignRight if align_right else Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignVCenter)
+                self._match_player_labels[p_idx].append(name_lbl)
+                
+                # Leader Combo
                 cb = QComboBox()
                 cb.addItems(leaders)
-                cb.setCurrentText(match.get(player_key, default))
-                cb.currentTextChanged.connect(lambda t, idx=match_idx, pk=player_key: md.set_match_leader(idx, pk, t))
+                player_key = f'p{p_idx}_leader'
+                cb.setCurrentText(match.get(player_key, 'Anders'))
+                cb.currentTextChanged.connect(lambda t, idx=i, pk=player_key: md.set_match_leader(idx, pk, t))
                 
                 if player_key not in self._leader_combos:
                     self._leader_combos[player_key] = []
                 self._leader_combos[player_key].append(cb)
                 
-                if match_idx == 0:
+                if i == 0:
                     cb.currentTextChanged.connect(lambda t, pk=player_key: self._propagate_leader(pk, t))
                 
-                layout_ref.addWidget(cb)
-                return cb
+                if align_right:
+                    self.match_rows_layout.addWidget(name_lbl, p_row, 1)
+                    self.match_rows_layout.addWidget(cb, p_row, 2)
+                else:
+                    self.match_rows_layout.addWidget(cb, p_row, 4)
+                    self.match_rows_layout.addWidget(name_lbl, p_row, 5)
 
-            # T1 Leaders
-            row_layout.addWidget(QLabel(self.tr("p_n").format(n=1)))
-            make_leader_combo(i, 'p1_leader', 'Atriox', row_layout)
-            if team_size >= 2:
-                row_layout.addWidget(QLabel(self.tr("p_n").format(n=3)))
-                make_leader_combo(i, 'p3_leader', 'Anders', row_layout)
-            if team_size >= 3:
-                row_layout.addWidget(QLabel(self.tr("p_n").format(n=5)))
-                make_leader_combo(i, 'p5_leader', 'Forge', row_layout)
+            # T1 Players
+            add_player_row(1, 1, True)
+            if team_size >= 2: add_player_row(3, 1, True)
+            if team_size >= 3: add_player_row(5, 1, True)
 
-            # Slider
+            # Winner Slider (Spans team_size rows)
             slider = QSlider(Qt.Orientation.Horizontal)
-            slider.setRange(0, 2)
-            slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-            slider.setTickInterval(1)
-            slider.setFixedWidth(50)
+            slider.setRange(0, 2); slider.setPageStep(1); slider.setTickPosition(QSlider.TickPosition.TicksBelow); slider.setTickInterval(1); slider.setFixedWidth(40)
             winner = match.get('winner', 0)
             if winner == 1: slider.setValue(0)
             elif winner == 2: slider.setValue(2)
             else: slider.setValue(1)
             slider.valueChanged.connect(lambda v, idx=i: self.handle_match_slider(idx, v))
-            row_layout.addWidget(slider)
+            self.match_rows_layout.addWidget(slider, base_row, 3, team_size, 1)
 
-            # T2 Leaders
-            row_layout.addWidget(QLabel(self.tr("p_n").format(n=2)))
-            make_leader_combo(i, 'p2_leader', 'Captain Cutter', row_layout)
-            if team_size >= 2:
-                row_layout.addWidget(QLabel("J4:"))
-                make_leader_combo(i, 'p4_leader', 'Decimus', row_layout)
-            if team_size >= 3:
-                row_layout.addWidget(QLabel("J6:"))
-                make_leader_combo(i, 'p6_leader', 'Pavium', row_layout)
+            # T2 Players
+            add_player_row(2, 4, False)
+            if team_size >= 2: add_player_row(4, 4, False)
+            if team_size >= 3: add_player_row(6, 4, False)
 
-            self.match_rows_layout.addWidget(row_widget)
-        
-        # Adjust window size to fit new content
-        # self.adjustSize() 
-        # Actually, let's try resizing to minimum hint
+            # Separator row (optional)
+            if i < len(matches) - 1:
+                line = QFrame()
+                line.setFrameShape(QFrame.Shape.HLine)
+                line.setFrameShadow(QFrame.Shadow.Sunken)
+                line.setStyleSheet("background-color: #333;")
+                # self.match_rows_layout.addWidget(line, base_row + team_size, 0, 1, 6) # This might mess up grid spacing
+
+        self.match_rows_layout.setColumnStretch(1, 1)
+        self.match_rows_layout.setColumnStretch(5, 1)
         self.resize(self.minimumSizeHint())
 
     def handle_match_slider(self, index, value):
@@ -624,19 +652,27 @@ class MainWindow(QMainWindow):
                 cb.setCurrentText(leader_text)
 
     def update_from_model(self, data):
-        """Update UI elements with data from model."""
-        if self.p1_team.text() != data.player1_team: self.p1_team.setText(data.player1_team)
-        if self.p2_team.text() != data.player2_team: self.p2_team.setText(data.player2_team)
-        
         if int(self.best_of.currentText()) != data.best_of:
             self.best_of.setCurrentText(str(data.best_of))
-
-        if self.game_type.currentText() != data.game_type:
-            self.game_type.setCurrentText(data.game_type)
             
         current_size_idx = data.team_size - 1
         if self.team_size.currentIndex() != current_size_idx:
             self.team_size.setCurrentIndex(current_size_idx)
+
+        self.chk_show_teams.blockSignals(True)
+        self.chk_show_teams.setChecked(data.show_team_names)
+        self.chk_show_teams.blockSignals(False)
+        
+        self.chk_show_flags.blockSignals(True)
+        self.chk_show_flags.setChecked(data.show_flags)
+        self.chk_show_flags.blockSignals(False)
+
+        self.chk_show_game_type.blockSignals(True)
+        self.chk_show_game_type.setChecked(data.show_game_type)
+        self.chk_show_game_type.blockSignals(False)
+
+        if self.map_combo.currentText() != data.current_map:
+            self.map_combo.setCurrentText(data.current_map)
 
     def check_db_status(self, text, btn):
         """Highlights the button if player exists in DB."""
@@ -861,3 +897,45 @@ class MainWindow(QMainWindow):
         names = self.player_db.get_all_names()
         for c in getattr(self, '_all_completers', []):
             c.setModel(QStringListModel(names))
+
+    def setup_info_tab(self):
+        layout = QVBoxLayout(self.info_tab)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
+        logo_label = QLabel()
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Assuming there might be a logo later, for now just text
+        logo_label.setText("<h2>Halo Wars 2 Casting Tool</h2>")
+        layout.addWidget(logo_label)
+        
+        version_label = QLabel("<b>Versión:</b> v0.2.0")
+        version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(version_label)
+        
+        info_text = QLabel("""
+            <p>Herramienta diseñada para casters de Halo Wars 2. Controla overlays en tiempo real para OBS.</p>
+            <hr>
+            <h3>Créditos</h3>
+            <p><b>Desarrollado por:</b> Ivanoides Corporation</p>
+            <hr>
+            <h3>Enlaces Útiles</h3>
+            <ul>
+                <li><a href='https://github.com/IvanUlloaMtz'>GitHub del Proyecto</a></li>
+                <li><a href='#'>Comunidad de Discord</a></li>
+            </ul>
+        """)
+        info_text.setOpenExternalLinks(True)
+        info_text.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(info_text)
+        
+        layout.addStretch()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'bg_animated'):
+            self.bg_animated.setGeometry(self.centralWidget().rect())
+
+    def toggle_dynamic_bg(self, checked):
+        self.controller.config_manager.set("dynamic_bg", checked)
+        if hasattr(self, 'bg_animated'):
+            self.bg_animated.setVisible(checked)

@@ -35,6 +35,7 @@ class MainController(QObject):
         self.setup_hotkeys()
 
     def on_client_connected(self, client_info):
+        self.ws_server.broadcast(self.match_data.get_config())
         self.broadcast_score()
 
     def set_view(self, view):
@@ -157,12 +158,8 @@ class MainController(QObject):
     def reset_all(self):
         logger.info("Reset All - Resetting scores to 0")
         self.match_data.reset_scores()
-        self.match_data.disconnection = False
-        self.match_data.mirror_match = False
         self._last_total_score = 0
         if self.view:
-            self.view.disconnect_cb.setChecked(False)
-            self.view.mirror_cb.setChecked(False)
             self.view.update_from_model(self.match_data)
             self.view.refresh_match_rows()
         self.broadcast_score()

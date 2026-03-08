@@ -5,8 +5,10 @@ Provides Dark and Light theme QSS stylesheets.
 
 DARK_THEME = """
 /* === DARK THEME === */
-QMainWindow, QWidget {
-    background-color: #1e1e2e;
+QMainWindow, QWidget#centralWidget {
+    background-color: transparent;
+}
+QWidget {
     color: #cdd6f4;
     font-family: 'Segoe UI', sans-serif;
     font-size: 13px;
@@ -14,7 +16,7 @@ QMainWindow, QWidget {
 
 QTabWidget::pane {
     border: 1px solid #45475a;
-    background-color: #1e1e2e;
+    background-color: rgba(30, 30, 46, 120);
     border-radius: 4px;
 }
 QTabBar::tab {
@@ -80,6 +82,7 @@ QPushButton:pressed {
 
 QGroupBox {
     border: 1px solid #45475a;
+    background-color: rgba(49, 50, 68, 80);
     border-radius: 6px;
     margin-top: 12px;
     padding-top: 16px;
@@ -171,8 +174,10 @@ QMessageBox {
 
 LIGHT_THEME = """
 /* === LIGHT THEME === */
-QMainWindow, QWidget {
-    background-color: #eff1f5;
+QMainWindow, QWidget#centralWidget {
+    background-color: transparent;
+}
+QWidget {
     color: #4c4f69;
     font-family: 'Segoe UI', sans-serif;
     font-size: 13px;
@@ -180,7 +185,7 @@ QMainWindow, QWidget {
 
 QTabWidget::pane {
     border: 1px solid #ccd0da;
-    background-color: #eff1f5;
+    background-color: rgba(239, 241, 245, 120);
     border-radius: 4px;
 }
 QTabBar::tab {
@@ -246,6 +251,7 @@ QPushButton:pressed {
 
 QGroupBox {
     border: 1px solid #ccd0da;
+    background-color: rgba(230, 233, 239, 80);
     border-radius: 6px;
     margin-top: 12px;
     padding-top: 16px;

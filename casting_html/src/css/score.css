@@ -1,0 +1,1074 @@
+body {
+  margin: 0;
+  padding: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background-color: transparent;
+  /* For OBS */
+  font-family: 'Teko', sans-serif;
+  text-transform: uppercase;
+}
+
+/* Container for the scoreboard */
+#scoreboard {
+  position: absolute;
+  top: 10px;
+  left: 49.5%;
+  transform: translateX(calc(-50% + 15px));
+  display: flex;
+  justify-content: center;
+  /* Center the score blocks */
+  align-items: stretch;
+  /* Width is now auto based on center content only */
+  width: auto;
+  min-height: 70px;
+  height: 70px;
+  /* Filter applied here might clip absolute children if not careful.
+         Let's apply drop-shadow to children or ensure container doesn't clip.
+         Actually, standard overflow is visible by default. */
+  filter: drop-shadow(0px 5px 5px rgba(0, 0, 0, 0.5));
+  visibility: hidden;
+  z-index: 2;
+}
+
+/* Global Border Overlay Container */
+.global-border-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: skewX(-20deg);
+  /* Match block skew */
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Common skewed block style */
+.block {
+  box-sizing: border-box;
+  /* Fuerza que el border de 2px no sume altura extra */
+  position: relative;
+  transform: skewX(-20deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  overflow: visible;
+  flex-shrink: 0;
+  background: transparent !important;
+}
+
+/* Un-skew content inside */
+.content {
+  transform: skewX(20deg);
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.p1-side {
+  position: absolute;
+  /* <--- CLAVE 1: Lo saca del flujo empujón */
+  right: 100%;
+  /* <--- CLAVE 2: Se ancla a la IZQUIERDA del bloque de números */
+  top: 0;
+  height: 100%;
+
+  width: auto;
+  white-space: nowrap;
+
+  background: transparent !important;
+  border: 2px solid #cc2222;
+  border-right: none;
+  color: white !important;
+  padding-right: 30px;
+  /* Espacio para la pinza */
+  padding-left: 50px;
+  /* Punta sesgada */
+  margin-right: -2px;
+  /* Para solapar bien el borde */
+  z-index: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Player 2 (Right - Blue) - Absolute Wing */
+/* Player 2 (Right - Blue) - Absolute Wing */
+.p2-side {
+  position: absolute;
+  /* <--- CLAVE 1 */
+  left: 100%;
+  /* <--- CLAVE 2: Se ancla a la DERECHA del bloque de números */
+  top: 0;
+  height: 100%;
+
+  width: auto;
+  white-space: nowrap;
+
+  background: transparent !important;
+  border: 2px solid #2244cc;
+  border-left: none;
+  color: white !important;
+  padding-left: 30px;
+  padding-right: 50px;
+  margin-left: -2px;
+  z-index: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Score Blocks (Center) - Transparent with team-colored borders */
+.score-block {
+  min-width: 50px;
+  z-index: 10;
+  background: transparent !important;
+  border: 2px solid var(--team-color, #fff);
+  position: relative;
+  overflow: visible;
+}
+
+/* Gap Spacer - frames the external clock app */
+.timer-gap {
+  position: relative;
+  width: 90px;
+  background: rgba(0, 0, 0, 0);
+  /* Explicitly transparent */
+  z-index: 0;
+  flex-shrink: 0;
+}
+
+/* Fine-tune score block positions relative to the external clock */
+#p1-score-block {
+  margin-right: 0px;
+}
+
+#p2-score-block {
+  margin-left: 0px;
+}
+
+.player-entry {
+  position: relative;
+  margin-bottom: 15px;
+  margin-top: 8px;
+}
+
+
+
+.player-name,
+.leader-name,
+.player-color-bar {
+  position: relative;
+  z-index: 5;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Typography */
+.player-name {
+  font-size: clamp(20px, 2.5vw, 25px);
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.8);
+  letter-spacing: 1px;
+  margin: 0 clamp(2px, 0.5vw, 5px);
+  color: white;
+  /* Explicitly white */
+}
+
+.leader-name {
+  font-size: clamp(12px, 1.5vw, 17px);
+  font-weight: 400;
+  color: #fff;
+  /* Brighter */
+  margin-top: -2px;
+  letter-spacing: 1px;
+}
+
+/* Player Color Bar - under leader name */
+.player-color-bar {
+  height: 3px;
+  width: 100%;
+  margin-top: 0px;
+  border-radius: 2px;
+  box-shadow: 0 0 4px currentColor;
+  animation: color-bar-glow 2s ease-in-out infinite alternate;
+}
+
+/* Flags */
+.fi {
+  background-size: cover;
+  background-position: center;
+  width: 30px;
+  height: 22px;
+  display: inline-block;
+  margin: 0 10px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@keyframes color-bar-glow {
+  0% {
+    filter: brightness(1) drop-shadow(0 0 2px currentColor);
+    box-shadow: 0 0 4px currentColor;
+  }
+
+  100% {
+    filter: brightness(1.5) drop-shadow(0 0 8px currentColor);
+    box-shadow: 0 0 10px currentColor, 0 0 4px currentColor;
+  }
+}
+
+/* Leader Image Scoreboard */
+.leader-img-small {
+  height: 62px;
+  width: auto;
+  max-width: 90px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin: -1px 5px 0 5px;
+  /* Sube 1px (top), 5px (right), 0 (bottom), 5px (left) */
+  /* We no longer skew the image itself because it inherited skew from .content */
+  /* but .content already un-skews with skewX(20deg). */
+  /* If images look "stretched", it's because of the block skew. */
+  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+}
+
+/* 3v3 Scaling Optimization */
+.team-size-3 .leader-img-small {
+  height: 55px;
+  margin: 0 4px;
+}
+
+.team-size-3 .player-name {
+  font-size: 19px;
+}
+
+.team-size-3 .leader-name {
+  font-size: 13px;
+}
+
+.team-size-3 .player-entry {
+  margin-bottom: 10px;
+  margin-top: 5px;
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-width: 130px;
+  /* Ensure stable centering */
+}
+
+/* =========================================
+       CSS ANIMATIONS (Robust & Visible)
+       ========================================= */
+
+/* ===== Dynamic Light Sweep Animation =====
+   A percentage-based light sweep that automatically adapts to the
+   width of the score block without JS resizing.
+*/
+.block::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      transparent 40%,
+      color-mix(in srgb, var(--team-color, #fff) 20%, transparent) 48%,
+      color-mix(in srgb, var(--team-color, #fff) 60%, transparent) 50%,
+      color-mix(in srgb, var(--team-color, #fff) 20%, transparent) 52%,
+      transparent 60%,
+      transparent 100%);
+  background-size: 200% 100%;
+  animation: shine-sweep 6s infinite linear;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Offset the animation for player 2 so they aren't identical */
+.p2-side::before,
+#p2-score-block::before {
+  animation-delay: -3s;
+  animation-direction: reverse;
+}
+
+@keyframes shine-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* Point Scored Pulse - Now per team and clipped */
+.pulse-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.pulse-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  filter: blur(20px);
+}
+
+/* Match History Indicators */
+.team-history {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%) skewX(20deg);
+  display: flex;
+  gap: 6px;
+  z-index: 5;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 0 0 5px 5px;
+}
+
+/* P1 History (Centered under wing) */
+#p1-history {
+  flex-direction: row;
+}
+
+/* P2 History (Centered under wing) */
+#p2-history {
+  flex-direction: row;
+}
+
+.h-ind {
+  width: 12px;
+  height: 8px;
+  background: #333;
+  border: 1px solid #555;
+  transform: skewX(-20deg);
+  /* Skew to match theme */
+}
+
+/* Colors */
+.h-ind.win {
+  background: #00ff00;
+  border-color: #fff;
+  animation: h-ind-pulse-win 2s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.h-ind.win::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: h-sweep 2.5s ease-in-out infinite;
+}
+
+.h-ind.loss {
+  background: #cc0000;
+  border-color: #777;
+  opacity: 0.9;
+  animation: h-ind-pulse-loss 2.2s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.h-ind.loss::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 100, 100, 0.5), transparent);
+  animation: h-sweep 3s ease-in-out infinite;
+}
+
+@keyframes h-ind-pulse-win {
+  0% {
+    box-shadow: 0 0 3px #00ff00;
+    transform: skewX(-20deg) scale(1);
+    background: #00cc00;
+  }
+
+  25% {
+    box-shadow: 0 0 12px #00ff00, 0 0 4px #88ff88;
+    transform: skewX(-20deg) scale(1.15);
+    background: #00ff44;
+  }
+
+  50% {
+    box-shadow: 0 0 6px #00ff00, 0 0 20px rgba(0, 255, 0, 0.3);
+    transform: skewX(-20deg) scale(1.05);
+    background: #00ff00;
+  }
+
+  75% {
+    box-shadow: 0 0 14px #44ff44, 0 0 6px #aaffaa;
+    transform: skewX(-20deg) scale(1.2);
+    background: #33ff33;
+  }
+
+  100% {
+    box-shadow: 0 0 3px #00ff00;
+    transform: skewX(-20deg) scale(1);
+    background: #00cc00;
+  }
+}
+
+@keyframes h-ind-pulse-loss {
+  0% {
+    box-shadow: 0 0 2px #cc0000;
+    transform: skewX(-20deg) scale(1);
+    background: #aa0000;
+  }
+
+  30% {
+    box-shadow: 0 0 10px #ff0000, 0 0 4px #ff4444;
+    transform: skewX(-20deg) scale(1.1);
+    background: #dd0000;
+  }
+
+  60% {
+    box-shadow: 0 0 5px #cc0000, 0 0 15px rgba(255, 0, 0, 0.25);
+    transform: skewX(-20deg) scale(1.05);
+    background: #cc0000;
+  }
+
+  100% {
+    box-shadow: 0 0 2px #cc0000;
+    transform: skewX(-20deg) scale(1);
+    background: #aa0000;
+  }
+}
+
+@keyframes h-sweep {
+  0% {
+    left: -100%;
+  }
+
+  40% {
+    left: 200%;
+  }
+
+  100% {
+    left: 200%;
+  }
+}
+
+.h-ind.tbd {
+  background: #444;
+  border: 1px solid #777;
+  opacity: 0.8;
+  animation: h-ind-pulse-tbd 3s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.h-ind.tbd::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: h-sweep 4s ease-in-out infinite;
+  animation-delay: 1s;
+  /* Stagger slightly */
+}
+
+@keyframes h-ind-pulse-tbd {
+  0% {
+    box-shadow: 0 0 2px #555;
+    transform: skewX(-20deg) scale(1);
+    background: #444;
+    border-color: #666;
+  }
+
+  50% {
+    box-shadow: 0 0 8px #999, 0 0 2px #fff;
+    transform: skewX(-20deg) scale(1.05);
+    background: #666;
+    border-color: #aaa;
+  }
+
+  100% {
+    box-shadow: 0 0 2px #555;
+    transform: skewX(-20deg) scale(1);
+    background: #444;
+    border-color: #666;
+  }
+}
+
+/* Flash animation for newly determined results */
+@keyframes h-ind-flash-win {
+  0% {
+    background: #fff;
+    box-shadow: 0 0 14px #00ff00, 0 0 30px #00ff00;
+    transform: skewX(-20deg) scale(1.6);
+  }
+
+  30% {
+    background: #88ff88;
+    box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+    transform: skewX(-20deg) scale(1.3);
+  }
+
+  100% {
+    background: #00ff00;
+    box-shadow: 0 0 5px #00ff00;
+    transform: skewX(-20deg) scale(1);
+  }
+}
+
+@keyframes h-ind-flash-loss {
+  0% {
+    background: #fff;
+    box-shadow: 0 0 14px #ff0000, 0 0 30px #ff0000;
+    transform: skewX(-20deg) scale(1.6);
+  }
+
+  30% {
+    background: #ff6666;
+    box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+    transform: skewX(-20deg) scale(1.3);
+  }
+
+  100% {
+    background: #cc0000;
+    box-shadow: 0 0 3px #cc0000;
+    transform: skewX(-20deg) scale(1);
+  }
+}
+
+.h-ind.win.flash {
+  animation: h-ind-flash-win 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.h-ind.loss.flash {
+  animation: h-ind-flash-loss 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 2. Container Breathing (Dynamic Feel) */
+/* Applied to .center-score blocks or main container if desired */
+
+/* 3. Game Type Indicator Glow */
+.glow-border {
+  animation: border-glow 2s infinite alternate;
+}
+
+@keyframes border-glow {
+  from {
+    box-shadow: 0 0 5px rgba(237, 175, 34, 0.4);
+    border-color: #edaf22;
+  }
+
+  to {
+    box-shadow: 0 0 15px rgba(237, 175, 34, 1);
+    border-color: #fff;
+  }
+}
+
+/* Series Winner Animation */
+@keyframes winner-pulse {
+  0% {
+    box-shadow: 0 0 10px #ffd700;
+    border-color: #ffd700;
+  }
+
+  50% {
+    box-shadow: 0 0 30px #ffd700, 0 0 10px white;
+    border-color: white;
+  }
+
+  100% {
+    box-shadow: 0 0 10px #ffd700;
+    border-color: #ffd700;
+  }
+}
+
+.series-win {
+  animation: winner-pulse 1.5s infinite;
+  z-index: 15 !important;
+}
+
+.winner-label {
+  position: absolute;
+  top: 100%;
+  margin-top: 22px;
+  /* Espacio para que el historial (team-history en bottom: -20px) quepa arriba */
+  left: 50%;
+  transform: translateX(-50%) skewX(20deg);
+  background: linear-gradient(90deg, #c9902a, #ffd700, #c9902a);
+  color: #000;
+  padding: 3px 15px;
+  font-weight: 800;
+  font-size: 16px;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 0 15px #ffd700;
+  z-index: 50;
+  border-radius: 0 0 3px 3px;
+}
+
+.series-win .winner-label {
+  opacity: 1;
+  animation: bounce-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: translateX(-50%) skewX(20deg) scale(0);
+  }
+
+  100% {
+    transform: translateX(-50%) skewX(20deg) scale(1);
+  }
+}
+
+/* 5. Score Pulse (Triggered on update) */
+.score-pulse {
+  animation: score-pop 0.3s ease-out;
+}
+
+@keyframes score-pop {
+  0% {
+    transform: scale(1);
+    color: #fff;
+  }
+
+  50% {
+    transform: scale(1.5);
+    color: #ffff00;
+    text-shadow: 0 0 20px yellow;
+  }
+
+  100% {
+    transform: scale(1);
+    color: #fff;
+  }
+}
+
+/* 4. Entry Animation Class (Toggled by JS) */
+.enter-active {
+  animation: slide-in 0.8s forwards cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.exit-active {
+  animation: slide-out 0.5s forwards ease-in;
+}
+
+@keyframes slide-in {
+  0% {
+    transform: translate(calc(-50% + 15px), -150%);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(calc(-50% + 15px), 0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out {
+  0% {
+    transform: translate(calc(-50% + 15px), 0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(calc(-50% + 15px), -150%);
+    opacity: 0;
+  }
+}
+
+/* Game Type Indicator */
+.bo-indicator {
+  position: absolute;
+  bottom: -26px;
+  left: 50%;
+  transform: translateX(-50%) skewX(-20deg);
+  background: #000;
+  color: #fff;
+  padding: 3px 15px;
+  font-size: 15px;
+  font-weight: 700;
+  border-bottom: 2px solid #edaf22;
+  border-left: 2px solid #555;
+  border-right: 2px solid #555;
+  z-index: 5;
+  white-space: nowrap;
+  letter-spacing: 1px;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Multi-player Stack Styles - HORIZONTAL */
+.p1-content,
+.p2-content {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  /* Horizontal flow forced inline */
+  align-items: center;
+  gap: 15px;
+  /* Spacing between players */
+}
+
+.p1-content {
+  justify-content: flex-end;
+}
+
+.p2-content {
+  justify-content: flex-start;
+}
+
+.player-entry {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 0;
+  /* Entry Animation */
+  animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+/* Staggered animation delays handled in JS or via nth-child if static count */
+.player-entry:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.player-entry:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.player-entry:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes pop-in {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 2v2 Adjustments */
+.team-size-2 .player-name {
+  font-size: 22px;
+}
+
+.team-size-2 .leader-name {
+  font-size: 14px;
+}
+
+/* 3v3 Adjustments - Horizontal space is precious */
+.team-size-3 .player-name {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.team-size-3 .leader-name {
+  font-size: 12px;
+}
+
+/* ============ Map Popup ============ */
+.map-popup {
+  position: fixed;
+  top: 50%;
+  right: 100px;
+  transform: translateY(-50%) translateX(60px);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 8px 24px;
+  color: #fff;
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+}
+
+/* --- Enter: slide in from right --- */
+.map-popup.enter {
+  animation: map-enter var(--map-enter-dur, 3s) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- Idle: breathing glow + float --- */
+.map-popup.idle {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+  animation: map-float 3s ease-in-out infinite alternate,
+    map-glow 2s ease-in-out infinite alternate;
+}
+
+/* --- Exit: slide out to right --- */
+.map-popup.exit {
+  animation: map-exit var(--map-exit-dur, 3s) ease-in forwards;
+}
+
+@keyframes map-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(60px) scale(0.9);
+  }
+
+  60% {
+    opacity: 1;
+    transform: translateY(-50%) translateX(-8px) scale(1.02);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+}
+
+@keyframes map-exit {
+  0% {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+
+  40% {
+    opacity: 0.8;
+    transform: translateY(-50%) translateX(-10px) scale(1.01);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(80px) scale(0.9);
+  }
+}
+
+@keyframes map-float {
+  0% {
+    transform: translateY(-50%) translateX(0);
+  }
+
+  100% {
+    transform: translateY(calc(-50% - 4px)) translateX(0);
+  }
+}
+
+@keyframes map-glow {
+  0% {
+    border-color: rgba(255, 255, 255, 0.15);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.05);
+  }
+
+  100% {
+    border-color: rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 14px rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+  }
+}
+
+.score-num {
+  font-size: 42px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+
+/* Team Name Label (Toggleable) - Optimized Size */
+.team-name-label {
+  width: 100%;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  padding-bottom: 1px;
+  display: inline-block;
+}
+
+/* ============ Disconnect Alert ============ */
+.disconnect-alert {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%) skewX(-20deg);
+  background: linear-gradient(135deg, #cc0000, #ff2222, #cc0000);
+  color: #fff;
+  padding: 5px 30px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 60;
+  border: 2px solid #ff4444;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.6), 0 0 40px rgba(255, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.disconnect-alert .dc-text {
+  display: inline-block;
+  transform: skewX(20deg);
+}
+
+.disconnect-alert.active {
+  animation: dc-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dc-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5), 0 0 30px rgba(255, 0, 0, 0.2);
+    border-color: #ff4444;
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.8), 0 0 60px rgba(255, 0, 0, 0.4), 0 0 10px #fff;
+    border-color: #ff8888;
+  }
+}
+
+
+/* ============ Mirror Match Alert ============ */
+.mirror-match-alert {
+  position: absolute;
+  top: 100%;
+  margin-top: 20px;
+  margin-left: -15px;
+  left: 50%;
+  transform: translate(-50%, 0) skewX(-20deg);
+  background: linear-gradient(135deg, #1a2a3a, #0a1520, #1a2a3a);
+  color: #00ffff;
+  padding: 4px 15px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 100;
+  border: 2px solid #00ffff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Shimmer sweep beam that travels across the box */
+.mirror-match-alert::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(0, 0, 0, 0.2),
+      rgba(0, 255, 255, 0.3),
+      rgba(255, 255, 255, 0.6),
+      rgba(0, 255, 255, 0.3),
+      rgba(0, 0, 0, 0.2),
+      transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mirror-match-alert.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mirror-match-alert.active::after {
+  animation: mm-sweep 2.5s ease-in-out infinite;
+}
+
+@keyframes mm-sweep {
+  0% {
+    left: -100%;
+  }
+
+  60% {
+    left: 200%;
+  }
+
+  100% {
+    left: 200%;
+  }
+}
+
+/* =========================================
+   INVERSIÓN DE SKEW PARA EQUIPO AZUL (/\)
+   ========================================= */
+.p2-side,
+#p2-score-block {
+  transform: translateX(-8px) skewX(20deg) !important;
+}
+
+.p2-side .content,
+#p2-score-block .content {
+  transform: skewX(-20deg) !important;
+}
+
+#p2-block .team-history {
+  transform: translateX(-50%) skewX(-20deg) !important;
+}
+
+#p2-block .winner-label {
+  transform: translateX(-50%) skewX(-20deg) !important;
+}
+
+@keyframes bounce-in-p2 {
+  0% {
+    transform: translateX(-50%) skewX(-20deg) scale(0);
+  }
+
+  100% {
+    transform: translateX(-50%) skewX(-20deg) scale(1);
+  }
+}
+
+#p2-block.series-win .winner-label {
+  animation: bounce-in-p2 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}

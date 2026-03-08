@@ -8,6 +8,38 @@ LEADERS = [
     "Serina", "Kinsano", "Sergeant Johnson", "Commander Jerome"
 ]
 
+LEADER_MAP = {
+    "Atriox": "atriox",
+    "Decimus": "decimus",
+    "Voridus": "voridus",
+    "Pavium": "pavium",
+    "Colony": "colony",
+    "YapYap The Destroyer": "yapyap",
+    "Yap Yap": "yapyap",
+    "The Arbiter": "arbiter",
+    "Arbiter": "arbiter",
+    "Shipmaster": "shipmaster",
+    "Captain Cutter": "cutter",
+    "Cutter": "cutter",
+    "Isabel": "isabel",
+    "Professor Anders": "anders",
+    "Anders": "anders",
+    "Sergeant Forge": "forge",
+    "Forge": "forge",
+    "Serina": "serina",
+    "Kinsano": "kinsano",
+    "Sergeant Johnson": "johnson",
+    "Johnson": "johnson",
+    "Commander Jerome": "jerome",
+    "Jerome": "jerome"
+}
+
+MAPS = [
+    "Ashes", "Badlands", "Bedrock", "Fissures", "Fort Jordan", 
+    "Frontier", "Highway", "Mirage", "Rift", "Sentry", 
+    "The Last Bastion", "The Proving Grounds", "Vault"
+]
+
 class MatchData(QObject):
     data_changed = pyqtSignal()
 
@@ -37,6 +69,8 @@ class MatchData(QObject):
         self._map_exit_sec = 3
         self._map_hidden_sec = 20
         self._show_team_names = False
+        self._show_flags = True
+        self._show_game_type = True
         self._disconnection = False
         self._mirror_match = False
         
@@ -94,10 +128,18 @@ class MatchData(QObject):
             },
             "matches": self.matches,
             "show_team_names": self._show_team_names,
+            "show_flags": self._show_flags,
+            "show_game_type": self._show_game_type,
             "team1_name": self._player1_team,
             "team2_name": self._player2_team,
             "disconnection": self._disconnection,
             "mirror_match": self._mirror_match,
+        }
+
+    def get_config(self):
+        return {
+            "type": "config",
+            "leader_map": LEADER_MAP
         }
 
     # Getters and Setters for Core Properties
@@ -132,6 +174,20 @@ class MatchData(QObject):
     def show_team_names(self, value):
         self._show_team_names = value
         self.data_changed.emit()
+    @property
+    def show_flags(self): return self._show_flags
+    @show_flags.setter
+    def show_flags(self, value):
+        self._show_flags = value
+        self.data_changed.emit()
+
+    @property
+    def show_game_type(self): return self._show_game_type
+    @show_game_type.setter
+    def show_game_type(self, value):
+        self._show_game_type = value
+        self.data_changed.emit()
+
 
     @property
     def disconnection(self): return self._disconnection

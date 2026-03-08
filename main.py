@@ -43,8 +43,8 @@ def main():
     # Connect View and Controller
     controller.set_view(window)
     
-    # Apply saved theme
-    saved_theme = controller.config_manager.get("theme", "dark")
+    # Apply saved theme (default to light for the redesigned UI)
+    saved_theme = controller.config_manager.get("theme", "light")
     window.apply_theme(saved_theme)
     
     window.show()
